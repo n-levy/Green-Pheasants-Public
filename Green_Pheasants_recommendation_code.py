@@ -2,29 +2,28 @@
 ##### Functions for recommendation system #####
 ###############################################
 
-### importing packages
+### import packages
 import pandas as pd
 import numpy as np
 import random
-# import statsmodels.formula.api as smf
 from collections import Counter
 from pandas.api.types import is_numeric_dtype
-# import datetime
-# from datetime import date
 from numpy.random import choice
-# from random import choices
 
+### Load the data
 # Define file paths
-user_file_path = 'H:\\My Drive\\sync\\Green Pheasants\\Data and code\\Real data\\users.csv'
-item_file_path = 'H:\\My Drive\\sync\\Green Pheasants\\Data and code\\Real data\\items.csv'
-interaction_file_path = 'H:\\My Drive\\sync\\Green Pheasants\\Data and code\\Real data\\interactions.csv'
+user_file_path = '[The path to the file on your local machine]'
+item_file_path = '[The path to the file on your local machine]'
+interaction_file_path = '[The path to the file on your local machine]'
 
+# Define function for loading the data
 def load_data(path):
     df = pd.read_csv(path)
     print(df.head())
     print(df.info())
     return df
 
+# Load the data
 df_users = load_data(user_file_path)
 df_items = load_data(item_file_path)
 df_interactions = load_data(interaction_file_path)
@@ -85,9 +84,9 @@ random_itemid=function_random(itemids)
 print(random_itemid)
 
 """
-Defintions
-A user is someone who has a user account. 
-A visitor is someone who does not have a user account, or has one but is not logged in.
+Defintions that are used throughout this script
+User - someone who has a user account. 
+Visitor - someone who does not have a user account, or has one but is not logged in.
 """
 
 ##########################################################
@@ -102,20 +101,14 @@ cols_to_check = ['userid', 'itemid', 'creatorid', 'inum_words_bin']
 # Remove the rows with missing values in specified columns
 df_interactions = df_interactions.dropna(subset=cols_to_check)
 
-# examine df_interactions
-print(df_interactions.shape)
-print(df_interactions.info())
-print(df_interactions.head())
-
 ###################################################
 ### create necessary cloumns in df_interactions ###
 ###################################################
 
-# calculating the mean of the collection column in the interactions df
+# calculate the mean of the collection column in the interactions df
 mu=np.nanmean(df_interactions['collection'])
-print(mu)
 
-## adding the interaction between the userid and the creatorid,
+## add the interaction between the userid and the creatorid,
 ## to account for users' preference towards certain poets
 
 def function_add_columns(df_interactions):
@@ -123,32 +116,14 @@ def function_add_columns(df_interactions):
     # tell pandas that I indeed want to modify the interactions DataFrame
     df_interactions = df_interactions.copy()
 
-    # Fill the creatorid column with random numbers (until Navpreet fixes this)
-    #num_rows = len(df_interactions)
-    #for i in range(num_rows):
-    #    df_interactions.loc[i] = random.randint(0, 100)    
-
     # concatenating the userid and creatorid columns into one numerical column called "userid_creatorid"
     df_interactions['userid_creatorid'] = df_interactions['userid'].astype(str) + "_" + df_interactions['creatorid'].apply(lambda x: str(int(x)))
 
-    # This line could be used for converting the concatenated column back to a numerical type, for running a fixed effects model
-    # But it is currently unnecessary since the code does not run such a model.
-    # df_interactions['userid_creatorid'] = pd.to_numeric(df_interactions['userid_creatorid'])
-
-    ### creating the userid_num_words_bin variable by concatenating the two columns
+    ### create the userid_num_words_bin variable by concatenating the two columns
     # concatenate the strings
     df_interactions['userid_inum_words_bin'] = df_interactions['userid'].astype(str) + "_" + df_interactions['inum_words_bin']
-    # remove non-numeric characters
-    # df_interactions['userid_inum_words_bin'] = df_interactions['userid_inum_words_bin'].str.replace(r'\D', '', regex=True)
-    #  convert to numeric
-    #  df_interactions['userid_inum_words_bin']=pd.to_numeric(df_interactions['userid_inum_words_bin'])
 
     return(df_interactions)
-
-# Test the function
-df_interactions=function_add_columns(df_interactions)
-# print(df_interactions.info())
-print(df_interactions.head())
 
 #######################################################################################
 ###### Create and train the 'unique_residuals' recommendation function        #########
@@ -192,12 +167,6 @@ def function_unique_residuals_model(df_interactions):
     ## adding the interaction between the userid and the creator,
     ## to account for users' preference towards certain poets
 
-    # Fill the creatorid column with random numbers (until Navpreet fixes this)
-    # num_rows = len(df_interactions)
-    # for i in range(num_rows):
-    #    df_interactions.loc[i] = random.randint(0, 100)
-    
- 
     # calculating the intercepts
     means_userid_creatorid=df_interactions.groupby(['userid_creatorid']).mean()
     means_userid_creatorid['b_userid_creatorid']=(means_userid_creatorid['collection']
@@ -209,16 +178,6 @@ def function_unique_residuals_model(df_interactions):
     # adding the intercepts to the 'df_interactions' dataframe
     df_interactions = pd.merge(df_interactions,means_userid_creatorid['b_userid_creatorid'],on='userid_creatorid', how='left')
     return(df_interactions)
-
-## Test the function
-df_interactions_test = function_unique_residuals_model(df_interactions)
-
-# explore the output
-# select the last 5 columns of df_interactions (these are the new columns that the function created)
-df_interactions_for_test = df_interactions.iloc[:, -5:]
-
-# show the first 10 rows of the new columns
-print(df_interactions_for_test.head(10))
 
 ##################################################################
 ###### A function that filters a dataframe by theme or mood ######
@@ -243,17 +202,6 @@ def function_df_filter_theme_mood(df_interactions, theme='all', mood='all'):
     
     return(df_filtered_theme_mood)
 
-## Test the function
-print(df_interactions['imood1'].head)
-print(df_interactions['imood2'].head)
-print(df_interactions['imood3'].head)
-print(df_interactions['itheme1'].head)
-print(df_interactions['itheme2'].head)
-print(df_interactions['itheme3'].head)
-df_interactions_filtered = function_df_filter_theme_mood(df_interactions, theme='Love', mood='all')
-print(df_interactions_filtered.shape)
-print(df_interactions.shape)
-
 ############################################################################################################################
 ###### A function that attaches userid and characteristics to each item, creating all combinations of users and items ######
 ############################################################################################################################
@@ -270,30 +218,6 @@ def function_attach_userids_to_items(df_users, df_items):
    df_users_items = df_users[['userid']].merge(df_items[['itemid', 'creatorid']], how='cross')
 
    return(df_users_items)
-
-# test the function
-print(df_users.head())
-print(df_items.head())
-
-df_users_items = function_attach_userids_to_items(df_users, df_items)
-print(df_users_items.info())
-print(df_users_items.shape)
-print(df_users_items.head())
-print(df_users_items.iloc[100:110]) # examine some rows in the middle of the dataframe
-print(df_users.shape[0]) # print the number of unique users
-print(df_items.shape[0]) # print the number of unique items
-print(df_users.shape[0]*df_items.shape[0]) # print the number of unique user-item combinations
-print(df_users_items.shape[0]) # print the number of rows in df_users_items
-
-# check whether the number of rows in df_user_items 
-# is the product of the number of unique users and the number of unique items
-if df_users_items.shape[0]==df_users.shape[0]*df_items.shape[0]:
-    print("It seems to have worked well. The number of rows in df_users_items is the product of the number of rows df_users and df_items")
-else: print("Something went wrong")
-
-# Count missing values in each column
-missing_values = df_users_items.isna().sum()
-print(missing_values)
 
 ##################################################################################
 ###### A function that removes items that the users have viewed in the past ######
@@ -316,37 +240,6 @@ def function_removing_viewed_items(df_interactions, df_users_items):
     df_users_items = df_users_items[~df_users_items['userid_itemid'].isin(df_interactions['userid_itemid'])]
 
     return(df_users_items)
-
-# Test the function
-
-# create df_users_items
-df_users_items = function_attach_userids_to_items(df_users, df_items)
-
-### concatenate the userid and itemid columns, in df_users_items and in df_interactions
-# in df_interactions
-df_interactions['userid_itemid']=(df_interactions['userid'].astype(str)+df_interactions['itemid'].astype(str)).astype(int)
-
-# in df_users_items
-df_users_items['userid_itemid']=(df_users_items['userid'].astype(str)+df_users_items['itemid'].astype(str)).astype(int)
-print(df_users_items.shape)
-
-len(df_users_items['userid'].astype(str))
-len(df_users_items['itemid'].astype(str))
-
-# Count missing values in each column
-missing_userids=df_users_items['userid'].isna().sum()
-print(missing_values)
-
-# Count the number of userid_itemid that appear in both the interactions df and the users_items df
-# Convert the columns to set, perform intersection, count the number of elements
-common_values = len(set(df_interactions['userid_itemid']).intersection(set(df_users_items['userid_itemid'])))
-
-print(f"The number of identical values is: {common_values}")
-
-# Apply the function
-df_users_items_test=function_removing_viewed_items(df_interactions, df_users_items)
-print(df_users_items_test.shape)
-print(df_users_items.shape)
 
 #################################################################################################################
 ###### A function that removes poems written by a poet that wrote at least one poem                       #######
@@ -373,32 +266,11 @@ def function_removing_items_to_expand_taste(df_interactions, df_users_items):
     df_users_items=df_users_items.copy()
     df_users_items['userid_creatorid']=(df_users_items['userid'].astype(int).astype(str) + df_users_items['creatorid'].astype(int).astype(str)).astype(int)
 
-    # Determine the common 'userid_creatorid' values between df_users_items and df_interactions_added_to_collection
-    # common_ids = set(df_users_items['userid_creatorid']).intersection(set(df_interactions_added_to_collection['userid_creatorid']))
-    # print(f"Common userid_creatorid in both dataframes: {common_ids}")
-
-    # Print the subset of df_users_items that contains the common 'userid_creatorid' values
-    # print("Before filtering:")
-    # print(df_users_items[df_users_items['userid_creatorid'].isin(common_ids)])
-    
     # Create a new dataframe df_users_items_filtered, which is a copy of df_users_items with the rows containing the common 'userid_creatorid' values removed
     df_users_items_filtered = df_users_items[~df_users_items['userid_creatorid'].isin(df_interactions_added_to_collection['userid_creatorid'])]
 
-    # Print the subset of df_users_items_filtered that (should not) contain the common 'userid_creatorid' values
-    # print("After filtering:")
-    # print(df_users_items_filtered[df_users_items_filtered['userid_creatorid'].isin(common_ids)])
-
     # Return the filtered DataFrame
     return(df_users_items_filtered)
-
-### Test the function
-# creating a test df
-df_users_items_test=function_removing_items_to_expand_taste(df_interactions, df_users_items)
-
-# checking the shape of the test df before and after filtering
-print(df_users_items.shape)
-df_users_items_test=function_removing_items_to_expand_taste(df_interactions, df_users_items)
-print(df_users_items_test.shape)
 
 ###################################################################################
 ###### A function that calculates probabilities of showing items to visitors ######
@@ -458,14 +330,6 @@ def function_calculate_probabilities_visitors(df_interactions, df_items, theme, 
     #df_items_with_betas['final_prediction']=df_items_with_betas['prediction_weighted']/sum_of_weighted_probabilities
     
     return(df_items_with_betas)
-
-### Test the function
-# applying the function
-df_items_with_betas_test = function_calculate_probabilities_visitors(df_interactions, df_items, theme='all', mood='Gloomy')
-
-# examine the resulting df
-print(df_items_with_betas_test.head())
-print(df_items_with_betas_test.info())
 
 ##########################################################
 ###### A function that adds betas to df_users_items ######
@@ -537,14 +401,6 @@ def function_calculate_probabilities_users(df_users, df_items, df_interactions):
 
     return(df_users_items_with_betas)
 
-### Test the function
-# apply the function
-df_users_items_with_betas_test = function_calculate_probabilities_users(df_users, df_items, df_interactions)
-
-# examine the resulting df
-print(df_users_items_with_betas_test.head())
-print(df_users_items_with_betas_test.info())
-
 ########################################################################################
 #### A function that calculates recommendation probabilities for one online visitor ####
 ########################################################################################
@@ -571,20 +427,6 @@ def function_calculate_recommendation_probabilities_one_visitor(df_items_with_be
    df_with_final_predictions=df_items_with_betas_filtered
    
    return(df_with_final_predictions)
-
-### Test the function
-# create df_items_with_betas_test
-df_users_items_with_betas_test = function_calculate_probabilities_users(df_users, df_items, df_interactions)
-
-# creating an identical dataframe without the word 'test'
-df_users_items_with_betas = df_users_items_with_betas_test
-
-# apply the function
-df_with_final_predictions_test = function_calculate_recommendation_probabilities_one_visitor(df_items_with_betas_test, theme='all', mood='all')
-
-# examine the resulting df
-print(df_with_final_predictions_test.head())
-print(df_with_final_predictions_test.info())
 
 ##############################################################################
 #### A function that calculates recommendation probabilities for one user ####
@@ -616,51 +458,7 @@ def function_calculate_recommendation_probabilities_one_user(df_users_requesting
        df_with_final_predictions=df_with_final_predictions.copy()
        df_with_final_predictions.loc[boolean_location, 'prediction_weighted'] = 0.0001
 
-       # calculating the sum of the probabilities
-       #sum_of_weighted_probabilities=df_users_items_with_betas_one_user_filtered['prediction_weighted'].sum()
-
-       # dividing each probability by the sum of weighted probabilities
-       #df_users_items_with_betas_one_user_filtered=df_users_items_with_betas_one_user_filtered.copy()
-       #df_users_items_with_betas_one_user_filtered['final_prediction']=df_users_items_with_betas_one_user_filtered['prediction_weighted']/sum_of_weighted_probabilities
-       #df_users_items_with_betas_one_user_filtered['final_prediction']=df_users_items_with_betas_one_user_filtered['prediction_weighted']
-       
-       # renaming the dataframe
-       #df_with_final_predictions=df_users_items_with_betas_one_user_filtered
-   
    return(df_with_final_predictions)
-
-
-# Test the function
-# create df_items_with_betas_test 
-df_users_items_with_betas_test = function_calculate_probabilities_users(df_users, df_items, df_interactions)
-
-### create df_users_requesting_recommendation
-
-# Get unique values
-unique_values = df_users['userid'].unique()
-
-# Create a subset. In this case, we'll take the first 1 unique values.
-# Adjust this to get the subset size you want.
-subset = unique_values[:5]
-
-# Create new series from subset of unique values
-df_users_requesting_recommendation_test = pd.Series(subset)
-
-# convert the series to a dataframe
-df_users_requesting_recommendation_test = df_users_requesting_recommendation_test.to_frame()
-
-# change column name to 'userid'
-df_users_requesting_recommendation_test.columns = ['userid']
-
-# create an identical dataframe without the word 'test'
-df_users_requesting_recommendation=df_users_requesting_recommendation_test
-
-# apply the function
-df_with_final_predictions_test = function_calculate_recommendation_probabilities_one_user(df_users_requesting_recommendation_test, df_users_items_with_betas_test, theme='all', mood='all')
-
-# examine the resulting df
-print(df_with_final_predictions_test.head())
-print(df_with_final_predictions_test.info())
 
 ###########################################################################################
 ###### A function that chooses an item to show a visitor or a user, after            ######
@@ -691,13 +489,6 @@ def function_choose_one_item_to_display(df_with_final_predictions):
 
   return(df_results)
 
-### Test the function
-# apply the function
-df_results_test = function_choose_one_item_to_display(df_with_final_predictions_test)
-
-# examine the resulting df
-print(df_results_test.head())
-
 ########################################################################################
 #### A function that calculates recommendation probabilities for many offline users ####
 ########################################################################################
@@ -724,16 +515,6 @@ def function_choose_items_to_display_for_multiple_users(df_users_items_with_beta
         # filtering df_users_items_with_betas so it will contain only one user
         df_users_items_with_betas_one_user = df_users_items_with_betas.loc[df_users_items_with_betas['userid']==userid]
     
-        # filtering items according to the users' choices to fit, expand or alternate between fitting and expanding their taste
-        #if df_users_items_with_betas_one_user['taste'].mean()==1: pass # 1 means fitting recommendations to users' taste
-        #elif df_users_items_with_betas_one_user['taste'].mean()==2: # 2 means expanding users' taste
-        #     df_users_items_with_betas_one_user=function_removing_items_to_expand_taste(df_interactions, df_users_items_with_betas_one_user)
-        #else: # alternating between fitting and expanding
-        #    if even_day==True: pass
-        #    else: 
-        #        df_users_items_with_betas_one_user=df_users_items_with_betas_one_user.copy()
-        #        df_users_items_with_betas_one_user=function_removing_items_to_expand_taste(df_interactions, df_users_items_with_betas_one_user) 
-
         ### generating the recommendation
         final_predictions_for_one_user=function_calculate_recommendation_probabilities_one_user(df_users_requesting_recommendation, df_users_items_with_betas_one_user, theme='all', mood='all')
         df_recommendation_for_one_user=function_choose_one_item_to_display(final_predictions_for_one_user)  
@@ -745,18 +526,3 @@ def function_choose_items_to_display_for_multiple_users(df_users_items_with_beta
         df_recommendations=pd.concat([df_recommendations, df_recommendation_for_one_user])
     
     return(df_recommendations)
-
-### Test the function
-# set userid
-userids=df_users['userid'].unique()
-random_userid=function_random(userids)    
-print(random_userid)
-
-# apply the function
-df_recommendations_test = function_choose_items_to_display_for_multiple_users(df_users_items_with_betas, df_users_requesting_recommendation)
-
-# examine the resulting df
-df_recommendations_test.head()
-
-# there is no 'taste' column in "df_users_items_with_betas_one_user"
-# add this after Navpreet creates it.
