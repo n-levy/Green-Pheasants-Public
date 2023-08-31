@@ -2,12 +2,6 @@
 ##### Functions for Green Pheasants recommendation system #####
 ###############################################################
 
-### import packages
-import pandas as pd
-import numpy as np
-import random
-from numpy.random import choice
-
 ### Import the data
 """
 Import three datasets from the database: "users", "items" and "interactions".
