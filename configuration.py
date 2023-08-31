@@ -6,7 +6,7 @@ Created on Thu Aug 31 20:38:35 2023
 """
 
 """
-Python 3.9.12
+All of the recommendation code scripts were written in Python 3.9.12
 """
 
 ### import packages
